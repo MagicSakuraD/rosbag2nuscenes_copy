@@ -1,6 +1,7 @@
-FROM ros:noetic-ros-core
+FROM image.cloudlayer.icu/ros:noetic-ros-core
 
 RUN apt-get update
+
 RUN apt-get install -y git python3-pip python3-tf2-ros ros-noetic-foxglove-msgs libgl1 libgeos-dev
 RUN rm -rf /var/lib/apt/lists/*
 

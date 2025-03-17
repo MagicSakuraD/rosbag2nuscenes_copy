@@ -687,39 +687,39 @@ def write_scene_to_mcap(nusc: NuScenes, nusc_can: NuScenesCanBus, scene, filepat
     location = log["location"]
     print(f'Loading map "{location}"')
     data_path = Path(nusc.dataroot)
-    nusc_map = NuScenesMap(dataroot=data_path, map_name=location)
-    print(f'Loading bitmap "{nusc_map.map_name}"')
-    image = load_bitmap(nusc_map.dataroot, nusc_map.map_name, "basemap")
-    print(f"Loaded {image.shape} bitmap")
+    # nusc_map = NuScenesMap(dataroot=data_path, map_name=location)
+    # print(f'Loading bitmap "{nusc_map.map_name}"')
+    # image = load_bitmap(nusc_map.dataroot, nusc_map.map_name, "basemap")
+    # print(f"Loaded {image.shape} bitmap")
     print(f"vehicle is {log['vehicle']}")
 
     cur_sample = nusc.get("sample", scene["first_sample_token"])
     pbar = tqdm(total=get_num_sample_data(nusc, scene), unit="sample_data", desc=f"{scene_name} Sample Data", leave=False)
 
-    can_parsers = [
-        [nusc_can.get_messages(scene_name, "ms_imu"), 0, get_imu_msg],
-        [nusc_can.get_messages(scene_name, "pose"), 0, get_odom_msg],
-        [
-            nusc_can.get_messages(scene_name, "steeranglefeedback"),
-            0,
-            lambda x: get_basic_can_msg("Steering Angle", x),
-        ],
-        [
-            nusc_can.get_messages(scene_name, "vehicle_monitor"),
-            0,
-            lambda x: get_basic_can_msg("Vehicle Monitor", x),
-        ],
-        [
-            nusc_can.get_messages(scene_name, "zoesensors"),
-            0,
-            lambda x: get_basic_can_msg("Zoe Sensors", x),
-        ],
-        [
-            nusc_can.get_messages(scene_name, "zoe_veh_info"),
-            0,
-            lambda x: get_basic_can_msg("Zoe Vehicle Info", x),
-        ],
-    ]
+    # can_parsers = [
+    #     [nusc_can.get_messages(scene_name, "ms_imu"), 0, get_imu_msg],
+    #     [nusc_can.get_messages(scene_name, "pose"), 0, get_odom_msg],
+    #     [
+    #         nusc_can.get_messages(scene_name, "steeranglefeedback"),
+    #         0,
+    #         lambda x: get_basic_can_msg("Steering Angle", x),
+    #     ],
+    #     [
+    #         nusc_can.get_messages(scene_name, "vehicle_monitor"),
+    #         0,
+    #         lambda x: get_basic_can_msg("Vehicle Monitor", x),
+    #     ],
+    #     [
+    #         nusc_can.get_messages(scene_name, "zoesensors"),
+    #         0,
+    #         lambda x: get_basic_can_msg("Zoe Sensors", x),
+    #     ],
+    #     [
+    #         nusc_can.get_messages(scene_name, "zoe_veh_info"),
+    #         0,
+    #         lambda x: get_basic_can_msg("Zoe Vehicle Info", x),
+    #     ],
+    # ]
 
     filepath.parent.mkdir(parents=True, exist_ok=True)
 
@@ -727,11 +727,11 @@ def write_scene_to_mcap(nusc: NuScenes, nusc_can: NuScenesCanBus, scene, filepat
         print(f"Writing to {filepath}")
         writer = Writer(fp, compression=CompressionType.LZ4)
 
-        imu_schema_id = writer.register_schema(name="IMU", encoding="jsonschema", data=json.dumps(IMU_JSON_SCHEMA).encode())
-        imu_channel_id = writer.register_channel(topic="/imu", message_encoding="json", schema_id=imu_schema_id)
+        # imu_schema_id = writer.register_schema(name="IMU", encoding="jsonschema", data=json.dumps(IMU_JSON_SCHEMA).encode())
+        # imu_channel_id = writer.register_channel(topic="/imu", message_encoding="json", schema_id=imu_schema_id)
 
-        odom_schema_id = writer.register_schema(name="Pose", encoding="jsonschema", data=json.dumps(ODOM_JSON_SCHEMA).encode())
-        odom_channel_id = writer.register_channel(topic="/odom", message_encoding="json", schema_id=odom_schema_id)
+        # odom_schema_id = writer.register_schema(name="Pose", encoding="jsonschema", data=json.dumps(ODOM_JSON_SCHEMA).encode())
+        # odom_channel_id = writer.register_channel(topic="/odom", message_encoding="json", schema_id=odom_schema_id)
 
         protobuf_writer = ProtobufWriter(writer)
         rosmsg_writer = RosmsgWriter(writer)
@@ -754,10 +754,10 @@ def write_scene_to_mcap(nusc: NuScenes, nusc_can: NuScenesCanBus, scene, filepat
                 nusc.get("sample_data", cur_sample["data"]["LIDAR_TOP"])["ego_pose_token"],
             )
         )
-        map_msg = get_scene_map(nusc, scene, nusc_map, image, stamp)
-        centerlines_msg = get_centerline_markers(nusc, scene, nusc_map, stamp)
-        protobuf_writer.write_message("/map", map_msg, stamp.to_nsec())
-        protobuf_writer.write_message("/semantic_map", centerlines_msg, stamp.to_nsec())
+        # map_msg = get_scene_map(nusc, scene, nusc_map, image, stamp)
+        # centerlines_msg = get_centerline_markers(nusc, scene, nusc_map, stamp)
+        # protobuf_writer.write_message("/map", map_msg, stamp.to_nsec())
+        # protobuf_writer.write_message("/semantic_map", centerlines_msg, stamp.to_nsec())
 
         while cur_sample is not None:
             sample_lidar = nusc.get("sample_data", cur_sample["data"]["LIDAR_TOP"])
@@ -765,27 +765,27 @@ def write_scene_to_mcap(nusc: NuScenes, nusc_can: NuScenesCanBus, scene, filepat
             stamp = get_time(ego_pose)
 
             # write CAN messages to /pose, /odom, and /diagnostics
-            can_msg_events = []
-            for i in range(len(can_parsers)):
-                (can_msgs, index, msg_func) = can_parsers[i]
-                while index < len(can_msgs) and get_utime(can_msgs[index]) < stamp:
-                    can_msg_events.append(msg_func(can_msgs[index]))
-                    index += 1
-                    can_parsers[i][1] = index
-            can_msg_events.sort(key=lambda x: x[0])
-            for (msg_stamp, topic, msg) in can_msg_events:
-                if topic == "/imu":
-                    writer.add_message(imu_channel_id, msg_stamp.to_nsec(), msg, msg_stamp.to_nsec())
-                elif topic == "/odom":
-                    writer.add_message(odom_channel_id, msg_stamp.to_nsec(), msg, msg_stamp.to_nsec())
-                else:
-                    rosmsg_writer.write_message(topic, msg, msg_stamp)
+            # can_msg_events = []
+            # for i in range(len(can_parsers)):
+            #     (can_msgs, index, msg_func) = can_parsers[i]
+            #     while index < len(can_msgs) and get_utime(can_msgs[index]) < stamp:
+            #         can_msg_events.append(msg_func(can_msgs[index]))
+            #         index += 1
+            #         can_parsers[i][1] = index
+            # can_msg_events.sort(key=lambda x: x[0])
+            # for (msg_stamp, topic, msg) in can_msg_events:
+            #     if topic == "/imu":
+            #         writer.add_message(imu_channel_id, msg_stamp.to_nsec(), msg, msg_stamp.to_nsec())
+            #     elif topic == "/odom":
+            #         writer.add_message(odom_channel_id, msg_stamp.to_nsec(), msg, msg_stamp.to_nsec())
+            #     else:
+            #         rosmsg_writer.write_message(topic, msg, msg_stamp)
 
             # publish /tf
             protobuf_writer.write_message("/tf", get_ego_tf(ego_pose), stamp.to_nsec())
 
             # /driveable_area occupancy grid
-            write_drivable_area(protobuf_writer, nusc_map, ego_pose, stamp)
+            # write_drivable_area(protobuf_writer, nusc_map, ego_pose, stamp)
 
             # iterate sensors
             for (sensor_id, sample_token) in cur_sample["data"].items():
@@ -977,14 +977,14 @@ def main():
 
     args = parser.parse_args()
 
-    nusc_can = NuScenesCanBus(dataroot=str(args.data_dir))
+    # nusc_can = NuScenesCanBus(dataroot=str(args.data_dir))
 
     for name in args.dataset_name:
         nusc = NuScenes(version=name, dataroot=str(args.data_dir), verbose=True)
         if args.list_only:
             nusc.list_scenes()
             return
-        convert_all(args.output_dir, name, nusc, nusc_can, args.scene)
+        convert_all(args.output_dir, name, nusc, None, args.scene)
 
 
 if __name__ == "__main__":
